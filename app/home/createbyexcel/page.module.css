@@ -47,6 +47,7 @@
 .tableCellInput {
   width: 100%; /* ใช้ความกว้างเต็มที่ของเซลล์ */
   box-sizing: border-box; /* รวม padding และ border ในขนาด */
+  min-width: 200px;
 }
 
 @media (max-width: 768px) {
