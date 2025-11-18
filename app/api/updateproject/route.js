@@ -1,24 +1,28 @@
-import { mysqlPool } from '@/utils/db';
+import { pgPool } from '@/utils/db';
 import { NextResponse } from 'next/server';
 
 export async function PUT(req) {
   try {
-    const { id, project,statusStock  } = await req.json();
+    const { id, project, statusStock } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ message: 'ID is required' }, { status: 400 });
+    }
 
     const query = `
-      UPDATE equipment 
-      SET project=? , status_stock=?
-      WHERE id=?
+      UPDATE equipment
+      SET project = $1,
+          status_stock = $2
+      WHERE id = $3
+      RETURNING *;
     `;
 
-    const values = [project,statusStock , id];
+    const values = [project, statusStock, id];
 
-    const promisePool = mysqlPool.promise();
+    const { rows } = await pgPool.query(query, values);
 
-    const [result] = await promisePool.query(query, values);
-
-    if (result.affectedRows > 0) {
-      return NextResponse.json({ message: 'Project updated successfully' }, { status: 200 });
+    if (rows.length > 0) {
+      return NextResponse.json({ message: 'Project updated successfully', data: rows[0] }, { status: 200 });
     } else {
       return NextResponse.json({ message: 'No data updated' }, { status: 404 });
     }

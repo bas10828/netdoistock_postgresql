@@ -1,7 +1,5 @@
-// C:\Users\kanta\Desktop\Dev\test_app_next\app\api\myproject\route.js
-
 import { NextResponse } from "next/server";
-import { mysqlPool } from "@/utils/db";
+import { query } from "@/utils/db"; // ใช้ PostgreSQL query wrapper
 
 export async function GET(request) {
   const loggedIn = request.headers.get('loggedIn');
@@ -10,12 +8,15 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const promisePool = mysqlPool.promise();
+  const queryText = `
+    SELECT project, COUNT(project) AS countproject 
+    FROM equipment 
+    GROUP BY project 
+    ORDER BY project ASC;
+  `;
 
   try {
-    const [rows, fields] = await promisePool.query(
-      `SELECT project, COUNT(project) AS countproject FROM equipment GROUP BY project ORDER BY project ASC;`
-    );
+    const rows = await query(queryText); // query wrapper คืนเฉพาะ rows
     return NextResponse.json(rows);
   } catch (error) {
     console.error('Database query error:', error);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { mysqlPool } from "@/utils/db";
+import { pgPool } from "@/utils/db";
 
 // GET - Fetch record by model
 export async function GET(request, { params }) {
@@ -10,11 +10,9 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const promisePool = mysqlPool.promise();
-  const query = `SELECT * FROM library WHERE model = ?`;
-
   try {
-    const [rows] = await promisePool.query(query, [model]);
+    const query = `SELECT * FROM library WHERE model = $1`;
+    const { rows } = await pgPool.query(query, [model]);
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Model not found' }, { status: 404 });

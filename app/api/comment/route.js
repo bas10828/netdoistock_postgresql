@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { mysqlPool } from "@/utils/db";
+import { query } from "@/utils/db"; // ใช้ query จาก db.js ของ PostgreSQL
 
 export async function GET(request, { params }) {
   // const { serial } = params;
-  const promisePool = mysqlPool.promise();
-  
-  const query = "SELECT * FROM comment";
+  // ตัวอย่าง query จาก table comment
+  const queryText = "SELECT * FROM comment";
 
   try {
-    const [rows] = await promisePool.query(query);
+    const rows = await query(queryText); // query wrapper คืนเฉพาะ rows
     if (rows.length === 0) {
       return NextResponse.json({ message: 'No records found' }, { status: 404 });
     }

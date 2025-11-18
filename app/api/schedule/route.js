@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { mysqlPool } from "@/utils/db";
+import { pgPool } from "@/utils/db";
 
 export async function GET(request) {
   const loggedIn = request.headers.get('loggedIn');
@@ -8,9 +8,14 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const promisePool = mysqlPool.promise()
-  const [rows, fields] = await promisePool.query(
-    `SELECT * FROM schedule ORDER BY date_start ASC;`
-  )
-  return NextResponse.json(rows)
+  try {
+    // PostgreSQL query
+    const query = `SELECT * FROM schedule ORDER BY date_start ASC`;
+    const { rows } = await pgPool.query(query);
+
+    return NextResponse.json(rows);
+  } catch (error) {
+    console.error("Error fetching schedule:", error);
+    return NextResponse.json({ error: "Error executing query" }, { status: 500 });
+  }
 }

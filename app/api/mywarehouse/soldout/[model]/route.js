@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { mysqlPool } from "@/utils/db";
+import { pgPool } from "@/utils/db";
 
 export async function GET(request, { params }) {
-  const promisePool = mysqlPool.promise();
-  const { model } = params; // Extract the model parameter from the URL
+  const { model } = params;
+  const promisePool = pgPool;
 
   try {
-    const query = `SELECT * FROM equipment WHERE model = ? AND status_stock = 'sold out'`;
-    const [rows, fields] = await promisePool.query(query, [model]);
+    const query = `SELECT * FROM equipment WHERE model = $1 AND status_stock = 'sold out'`;
+    const { rows } = await promisePool.query(query, [model]);
+
     return NextResponse.json(rows);
   } catch (error) {
     console.error(error);

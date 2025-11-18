@@ -1,31 +1,32 @@
-import { mysqlPool } from '@/utils/db';
+import { pgPool } from '@/utils/db';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req) {
   try {
-    // ใช้ await req.json() เพื่อ parse body เป็น JSON
     const body = await req.json();
     const { username, email, password, priority } = body;
 
-    // ตรวจสอบว่ามีค่าที่จำเป็นครบถ้วน
+    // ตรวจสอบค่าที่จำเป็น
     if (!username || !email || !password || !priority) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
-    // เข้ารหัสรหัสผ่านโดยใช้ bcrypt
+    // เข้ารหัสรหัสผ่าน
     const hashedPassword = await bcrypt.hash(password.toString(), 10);
 
-    // SQL query สำหรับการ insert ผู้ใช้ใหม่ลงในฐานข้อมูล รวมถึง priority
-    const query = 'INSERT INTO users (username, email, password, priority) VALUES (?, ?, ?, ?)';
+    // PostgreSQL ใช้ $1, $2, ... แทน ?
+    const query = `
+      INSERT INTO users (username, email, password, priority)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, username, email, priority
+    `;
     const values = [username, email, hashedPassword, priority];
 
-    // เชื่อมต่อกับฐานข้อมูลและทำการ insert ผ่าน connection pool ที่มี promise
-    const promisePool = mysqlPool.promise();
-    const [result] = await promisePool.query(query, values);
+    const { rows } = await pgPool.query(query, values);
 
-    // ส่งคำตอบกลับให้กับ client ว่าลงทะเบียนสำเร็จแล้ว
-    return NextResponse.json({ message: 'User registered successfully' }, { status: 201 });
+    // ส่งข้อมูลผู้ใช้ที่เพิ่มใหม่กลับไป
+    return NextResponse.json({ message: 'User registered successfully', user: rows[0] }, { status: 201 });
   } catch (error) {
     console.error('Error registering user:', error);
     return NextResponse.json({ error: 'Error registering user' }, { status: 500 });

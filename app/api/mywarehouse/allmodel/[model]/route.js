@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
-import { mysqlPool } from "@/utils/db";
+import { pgPool } from "@/utils/db";
 
 export async function GET(request, { params }) {
-  const promisePool = mysqlPool.promise();
-  const { model } = params; // Extract the model parameter from the URL
+  const { model } = params; // ดึง model จาก URL
 
   try {
-    const query = `SELECT * FROM equipment WHERE model = ?`;
-    const [rows, fields] = await promisePool.query(query, [model]);
+    const query = `SELECT * FROM equipment WHERE model = $1`;
+    const { rows } = await pgPool.query(query, [model]);
     return NextResponse.json(rows);
   } catch (error) {
-    console.error(error);
+    console.error("Error executing query:", error);
     return NextResponse.json({ error: "Error executing query" }, { status: 500 });
   }
 }

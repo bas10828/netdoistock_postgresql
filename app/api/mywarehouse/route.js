@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { mysqlPool } from "@/utils/db";
+import { pgPool } from "@/utils/db";
 
 export async function GET(request) {
   const loggedIn = request.headers.get('loggedIn');
@@ -7,7 +7,6 @@ export async function GET(request) {
   if (!loggedIn || loggedIn !== 'true') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const promisePool = mysqlPool.promise();
 
   const query = `
     SELECT 
@@ -25,14 +24,13 @@ export async function GET(request) {
       e.brand, e.model, l.device_type
     ORDER BY 
       e.brand DESC;
-
   `;
 
   try {
-    const [rows, fields] = await promisePool.query(query);
+    const { rows } = await pgPool.query(query);
     return NextResponse.json(rows);
   } catch (error) {
-    console.error(error);
+    console.error("Error executing query:", error);
     return NextResponse.json({ error: "Error executing query" }, { status: 500 });
   }
 }
