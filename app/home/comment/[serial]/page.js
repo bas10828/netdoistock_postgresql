@@ -47,6 +47,7 @@ function ProjectPage({ params }) {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comment/${serial}`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch data');
+        console.log(res)
         return res.json();
       })
       .then(data => {

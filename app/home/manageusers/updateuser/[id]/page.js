@@ -21,8 +21,8 @@ export default function UpdateUserPage({ params }) {
     if (!loggedIn) {
       setIsLoggedIn(false);
       window.location.href = "/";
-    }else {
-      setIsLoggedIn(true);      
+    } else {
+      setIsLoggedIn(true);
     }
     const getData = async () => {
       try {
@@ -31,19 +31,22 @@ export default function UpdateUserPage({ params }) {
           throw new Error('Failed to fetch data');
         }
         const userData = await response.json();
-        if (userData && userData.length > 0) {
-          const { id, username, email, priority } = userData[0];
+        console.log(userData)
+        if (userData && userData.id) {
+          const { id, username, email, priority } = userData;
           setFormData({
             id: id,
             username: username,
             email: email,
             priority: priority || '',
-            password: ''  // ตั้งค่าเริ่มต้นของ password เป็นค่าว่าง
+            password: ''
           });
           setLoading(false);
         } else {
           console.error('No data found for the given id');
         }
+
+
       } catch (error) {
         console.error('Error fetching data:', error);
       }

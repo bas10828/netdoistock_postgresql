@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
-import { mysqlPool } from '@/utils/db';
+import { pgPool } from '@/utils/db';
 
 export async function PUT(request, { params }) {
   try {
-    // Extract the 'id' parameter from the URL
     const { id } = params;
-
-    // Extract data from the request
     const { serial, user, comment_text } = await request.json();
 
-    // Validate input data
     if (!id) {
       return NextResponse.json({ error: "Missing 'id' parameter" }, { status: 400 });
     }
@@ -17,28 +13,29 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: "Missing 'serial' parameter" }, { status: 400 });
     }
 
-    // Generate the current timestamp in the correct format
-    const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const currentTimestamp = new Date().toISOString();
 
-    // Prepare the SQL query
     const query = `
       UPDATE comment
-      SET user = ?, timestamp = CONVERT_TZ(?, '+00:00', '+07:00'), comment_text = ?, serial = ?
-      WHERE id = ?;
+      SET "user" = $1,
+          timestamp = $2,
+          comment_text = $3,
+          serial = $4
+      WHERE id = $5
+      RETURNING id;
     `;
 
-    // Execute the query
-    const promisePool = mysqlPool.promise();
-    const [result] = await promisePool.query(query, [user, currentTimestamp, comment_text, serial, id]);
+    const values = [user, currentTimestamp, comment_text, serial, id];
 
-    // Check if the update was successful
-    if (result.affectedRows > 0) {
+    const result = await pgPool.query(query, values);
+
+    if (result.rowCount > 0) {
       return NextResponse.json({ success: true });
     } else {
       return NextResponse.json({ error: "No comment found to update" }, { status: 404 });
     }
   } catch (error) {
-    console.error(error);
+    console.error("PUT comment error:", error);
     return NextResponse.json({ error: "Error executing query" }, { status: 500 });
   }
 }

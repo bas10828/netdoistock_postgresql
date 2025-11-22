@@ -1,4 +1,4 @@
-import { mysqlPool } from '@/utils/db';
+import { pgPool } from '@/utils/db';
 import { NextResponse } from 'next/server';
 
 export async function DELETE(req, { params }) {
@@ -13,23 +13,21 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    // SQL query สำหรับการลบผู้ใช้จากฐานข้อมูล
-    const query = 'DELETE FROM comment WHERE id = ?';
-    const values = [id];
+    // SQL query สำหรับการลบ comment
+    const query = 'DELETE FROM comment WHERE id = $1';
+    
+    // Execute query
+    const result = await pgPool.query(query, [id]);
 
-    // เชื่อมต่อกับฐานข้อมูลและทำการ delete ผ่าน connection pool ที่มี promise
-    const promisePool = mysqlPool.promise();
-    const [result] = await promisePool.query(query, values);
-
-    // ตรวจสอบว่ามีการลบแถวใด ๆ หรือไม่
-    if (result.affectedRows === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // ตรวจสอบว่ามีการลบแถวหรือไม่
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
 
-    // ส่งคำตอบกลับให้กับ client ว่าลบสำเร็จแล้ว
-    return NextResponse.json({ message: 'User deleted successfully' }, { status: 200 });
+    // ส่งคำตอบกลับว่า ลบสำเร็จ
+    return NextResponse.json({ message: 'Comment deleted successfully' }, { status: 200 });
   } catch (error) {
-    console.error('Error deleting user:', error);
-    return NextResponse.json({ error: 'Error deleting user' }, { status: 500 });
+    console.error('Error deleting comment:', error);
+    return NextResponse.json({ error: 'Error deleting comment' }, { status: 500 });
   }
 }
