@@ -1,261 +1,133 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, Grid, Paper, Typography, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import { Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import Link from 'next/link';
 
-export default function UpdateUserPage({ params }) {
+export default function UpdateEquipmentPage({ params }) {
   const { id } = params;
   const [formData, setFormData] = useState({
-    id: '',
-    proid: '',
-    serial: '',
-    mac: '',
-    status_stock: '',
-    into_stock: '',
-    price: '',
-    brand: '',
-    model: '',
-    project: '',
-    out_stock: '',
-    purchase: '',
+    id:'', proid:'', serial:'', mac:'', status_stock:'',
+    into_stock:'', price:'', brand:'', model:'', project:'', out_stock:'', purchase:'',
   });
   const [loading, setLoading] = useState(true);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [project, setProject] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     const loggedIn = localStorage.getItem('isLoggedIn');
-    if (!loggedIn) {
-      setIsLoggedIn(false);
-      window.location.href = "/";
-    }else {
-      setIsLoggedIn(true);      
-    }
-    const getData = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/find_by_id/${id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const userData = await response.json();
-        if (userData && userData.length > 0) {
-          setFormData(userData[0]);
-          setProject(userData[0].project); // Set the project from fetched data
-          setLoading(false);
-          // console.log(userData)
-        } else {
-          console.error('No data found for the given id');
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    if (id) {
-      getData();
-    }
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/find_by_id/${id}`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(data => { if (data?.length > 0) { setFormData(data[0]); setLoading(false); } })
+      .catch(() => setLoading(false));
   }, [id]);
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update user');
-      }
-      setUpdateSuccess(true);
-      alert('User updated successfully');
-    } catch (error) {
-      console.error('Error updating user:', error);
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  if (!isLoggedIn) {
-    return null; // or any other non-form content like a login prompt
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('');
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!r.ok) throw new Error();
+      setStatus('success');
+    } catch { setStatus('error'); }
+  };
+
+  if (!isLoggedIn) return null;
 
   if (loading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="page-wrapper" style={{ maxWidth:660, margin:'0 auto', textAlign:'center', paddingTop:60 }}>
+        <div style={{ fontSize:'2rem', marginBottom:8 }}>⏳</div>
+        <Typography style={{ color:'#64748b' }}>กำลังโหลดข้อมูล...</Typography>
+      </div>
+    );
   }
 
+  const fieldSx = { marginBottom: 0 };
+
   return (
-    <Grid container justifyContent="center" alignItems="center" style={{ height: '100vh' }}>
-      <Grid item xs={10} sm={8} md={6} lg={4}>
-        <Paper elevation={3} style={{ padding: '80px' }}>
-          <Typography variant="h4" gutterBottom>
-            แก้ไข ID: {formData.id}
-          </Typography>
-          <form onSubmit={handleFormSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="proid"
-                  name="proid"
-                  label="รหัสครุภัณฑ์"
-                  variant="outlined"
-                  value={formData.proid}
-                  onChange={(e) => setFormData({ ...formData, proid: e.target.value })}
-                  required
-                />
-              </Grid>
+    <div className="page-wrapper" style={{ maxWidth:660, margin:'0 auto' }}>
 
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="brand"
-                  name="brand"
-                  label="Brand"
-                  variant="outlined"
-                  value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="model"
-                  name="model"
-                  label="Model"
-                  variant="outlined"
-                  value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="serial"
-                  name="serial"
-                  label="Serial"
-                  variant="outlined"
-                  value={formData.serial}
-                  onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="mac"
-                  name="mac"
-                  label="Mac"
-                  variant="outlined"
-                  value={formData.mac}
-                  onChange={(e) => setFormData({ ...formData, mac: e.target.value })}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="price"
-                  name="price"
-                  label="Price"
-                  type="number"
-                  variant="outlined"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="purchase"
-                  name="purchase"
-                  label="Purchase"
-                  // type="date"
-                  variant="outlined"
-                  value={formData.purchase}
-                  onChange={(e) => setFormData({ ...formData, purchase: e.target.value })}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="project"
-                  name="project"
-                  label="Project"
-                  variant="outlined"
-                  value={formData.project}
-                  onChange={(e) => setFormData({ ...formData, project: e.target.value })}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControl fullWidth variant="outlined" required>
-                  <InputLabel id="status-stock-label">Status</InputLabel>
-                  <Select
-                    labelId="status-stock-label"
-                    id="status_stock"
-                    name="status_stock"
-                    value={formData.status_stock}
-                    onChange={(e) => setFormData({ ...formData, status_stock: e.target.value })}
-                    label="Status"
-                  >
-                    <MenuItem value="in stock">In Stock</MenuItem>
-                    <MenuItem value="sold out">Sold Out</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="into_stock"
-                  name="into_stock"
-                  label="Into Stock"
-                  type="date"
-                  variant="outlined"
-                  value={formData.into_stock}
-                  onChange={(e) => setFormData({ ...formData, into_stock: e.target.value })}
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="out_stock"
-                  name="out_stock"
-                  label="Out Stock"
-                  type="date"
-                  variant="outlined"
-                  value={formData.out_stock}
-                  onChange={(e) => setFormData({ ...formData, out_stock: e.target.value })}
-                  required
-                />
-              </Grid>
-
-            </Grid>
-            <Button type="submit" variant="contained" color="primary" style={{ marginTop: '20px' }}>
-              Update Equipment
+      <div className="form-card-header">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+          <div>
+            <Typography style={{ fontSize:'1.3rem', fontWeight:800, color:'white', letterSpacing:'-0.3px' }}>
+              ✏️ แก้ไขข้อมูลอุปกรณ์
+            </Typography>
+            <p style={{ margin:'4px 0 0', color:'rgba(255,255,255,0.7)', fontSize:'0.875rem' }}>
+              ID: {formData.id} · {formData.brand} {formData.model}
+            </p>
+          </div>
+          <Link href="/home/soldout">
+            <Button style={{ background:'rgba(255,255,255,0.18)', color:'white', border:'1.5px solid rgba(255,255,255,0.4)', borderRadius:9, textTransform:'none', fontWeight:600 }}>
+              ← Sold Out
             </Button>
-          </form>
-          {updateSuccess && (
-            <Link href={`/home/soldout`}>
-              <Button variant="contained" color="secondary" style={{ marginTop: '20px' }}>
-                Back to Home
-              </Button>
-            </Link>
-          )}
-        </Paper>
-      </Grid>
-    </Grid>
+          </Link>
+        </div>
+      </div>
+
+      <div className="form-card-body">
+        {status === 'success' && (
+          <div className="alert-success" style={{ marginBottom:20 }}>
+            ✅ อัปเดตสำเร็จแล้ว
+            <Link href="/home/soldout" style={{ marginLeft:12, color:'#15803d', fontWeight:700 }}>← กลับ</Link>
+          </div>
+        )}
+        {status === 'error' && (
+          <div className="alert-error" style={{ marginBottom:20 }}>
+            ❌ อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+            <TextField size="small" label="รหัสครุภัณฑ์" name="proid"
+              value={formData.proid} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="Brand" name="brand"
+              value={formData.brand} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="Model" name="model"
+              value={formData.model} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="Serial" name="serial"
+              value={formData.serial} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="MAC" name="mac"
+              value={formData.mac} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="Price" type="number" name="price"
+              value={formData.price} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="Purchase (ซื้อมาจาก)" name="purchase"
+              value={formData.purchase} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="Project (โครงการ)" name="project"
+              value={formData.project} onChange={handleChange} sx={fieldSx} />
+            <TextField size="small" label="วันซื้อ (Into Stock)" type="date" name="into_stock"
+              value={formData.into_stock} onChange={handleChange}
+              InputLabelProps={{ shrink:true }} sx={fieldSx} />
+            <TextField size="small" label="วันขาย (Out Stock)" type="date" name="out_stock"
+              value={formData.out_stock} onChange={handleChange}
+              InputLabelProps={{ shrink:true }} sx={fieldSx} />
+            <FormControl size="small" sx={fieldSx} style={{ gridColumn:'1 / -1' }}>
+              <InputLabel>Status Stock</InputLabel>
+              <Select name="status_stock" value={formData.status_stock} onChange={handleChange} label="Status Stock">
+                <MenuItem value="in stock">In Stock</MenuItem>
+                <MenuItem value="sold out">Sold Out</MenuItem>
+              </Select>
+            </FormControl>
+          </div>
+
+          <Button type="submit" variant="contained" fullWidth
+            style={{ marginTop:20, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', padding:'12px', fontWeight:700, fontSize:'1rem', borderRadius:12, textTransform:'none', boxShadow:'0 4px 16px rgba(79,70,229,0.35)' }}>
+            💾 บันทึกการเปลี่ยนแปลง
+          </Button>
+        </form>
+      </div>
+    </div>
   );
 }

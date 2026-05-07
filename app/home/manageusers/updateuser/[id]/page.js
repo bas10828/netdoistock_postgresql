@@ -1,163 +1,116 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, Grid, Paper, Typography, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import { Button, Typography, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import Link from 'next/link';
 
 export default function UpdateUserPage({ params }) {
   const { id } = params;
-  const [formData, setFormData] = useState({
-    id: '',
-    username: '',
-    email: '',
-    priority: '',
-    password: ''  // เพิ่มฟิลด์ password
-  });
+  const [formData, setFormData] = useState({ id:'', username:'', email:'', priority:'', password:'' });
   const [loading, setLoading] = useState(true);
-  const [updateSuccess, setUpdateSuccess] = useState(false);  // สถานะสำหรับเช็คว่าการอัพเดตสำเร็จหรือไม่
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     const loggedIn = localStorage.getItem('isLoggedIn');
-    if (!loggedIn) {
-      setIsLoggedIn(false);
-      window.location.href = "/";
-    } else {
-      setIsLoggedIn(true);
-    }
-    const getData = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/get_user_by_id/${id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const userData = await response.json();
-        console.log(userData)
-        if (userData && userData.id) {
-          const { id, username, email, priority } = userData;
-          setFormData({
-            id: id,
-            username: username,
-            email: email,
-            priority: priority || '',
-            password: ''
-          });
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/get_user_by_id/${id}`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(data => {
+        if (data?.id) {
+          setFormData({ id:data.id, username:data.username, email:data.email, priority:data.priority||'', password:'' });
           setLoading(false);
-        } else {
-          console.error('No data found for the given id');
         }
-
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    if (id) {
-      getData();
-    }
+      })
+      .catch(() => setLoading(false));
   }, [id]);
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/updateuser`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update user');
-      }
-      setUpdateSuccess(true);  // ตั้งค่าสถานะว่าการอัพเดตสำเร็จ
-      alert('User updated successfully');
-    } catch (error) {
-      console.error('Error updating user:', error);
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('');
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/updateuser`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!r.ok) throw new Error();
+      setStatus('success');
+    } catch { setStatus('error'); }
+  };
+
+  if (!isLoggedIn) return null;
+
   if (loading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="page-wrapper" style={{ maxWidth:520, margin:'0 auto', textAlign:'center', paddingTop:60 }}>
+        <div style={{ fontSize:'2rem', marginBottom:8 }}>⏳</div>
+        <Typography style={{ color:'#64748b' }}>กำลังโหลดข้อมูล...</Typography>
+      </div>
+    );
   }
 
   return (
-    <Grid container justifyContent="center" alignItems="center" style={{ height: '100vh' }}>
-      <Grid item xs={10} sm={8} md={6} lg={4}>
-        <Paper elevation={3} style={{ padding: '20px' }}>
-          <Typography variant="h4" gutterBottom>
-            Edit User ID: {formData.id}
-          </Typography>
-          <form onSubmit={handleFormSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="username"
-                  name="username"
-                  label="Username"
-                  variant="outlined"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="email"
-                  name="email"
-                  label="Email"
-                  type="email"
-                  variant="outlined"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth variant="outlined" required>
-                  <InputLabel id="priority-label">Priority</InputLabel>
-                  <Select
-                    labelId="priority-label"
-                    id="priority"
-                    name="priority"
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    label="Priority"
-                  >
-                    <MenuItem value="admin">Admin</MenuItem>
-                    <MenuItem value="user">User</MenuItem>
-                    <MenuItem value="guest">Guest</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  id="password"
-                  name="password"
-                  label="Password"
-                  type="password"
-                  variant="outlined"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
-              </Grid>
-            </Grid>
-            <Button type="submit" variant="contained" color="primary" style={{ marginTop: '20px' }}>
-              Update User
+    <div className="page-wrapper" style={{ maxWidth:520, margin:'0 auto' }}>
+
+      <div className="form-card-header">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+          <div>
+            <Typography style={{ fontSize:'1.3rem', fontWeight:800, color:'white', letterSpacing:'-0.3px' }}>
+              ✏️ แก้ไขข้อมูลผู้ใช้
+            </Typography>
+            <p style={{ margin:'4px 0 0', color:'rgba(255,255,255,0.7)', fontSize:'0.875rem' }}>
+              ID: {formData.id} · {formData.username}
+            </p>
+          </div>
+          <Link href="/home/manageusers">
+            <Button style={{ background:'rgba(255,255,255,0.18)', color:'white', border:'1.5px solid rgba(255,255,255,0.4)', borderRadius:9, textTransform:'none', fontWeight:600 }}>
+              ← กลับ
             </Button>
-          </form>
-          {updateSuccess && (
-            <Link href="/home/manageusers">
-              <Button variant="contained" color="secondary" style={{ marginTop: '20px' }}>
-                Back to Manage Users
-              </Button>
-            </Link>
-          )}
-        </Paper>
-      </Grid>
-    </Grid>
+          </Link>
+        </div>
+      </div>
+
+      <div className="form-card-body">
+        {status === 'success' && (
+          <div className="alert-success" style={{ marginBottom:20 }}>
+            ✅ อัปเดตสำเร็จแล้ว
+            <Link href="/home/manageusers" style={{ marginLeft:12, color:'#15803d', fontWeight:700 }}>← กลับ</Link>
+          </div>
+        )}
+        {status === 'error' && (
+          <div className="alert-error" style={{ marginBottom:20 }}>
+            ❌ อัปเดตไม่สำเร็จ กรุณาลองใหม่
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <TextField size="small" label="Username *" name="username"
+            value={formData.username} onChange={handleChange} required fullWidth />
+          <TextField size="small" label="Email *" name="email" type="email"
+            value={formData.email} onChange={handleChange} required fullWidth />
+          <FormControl size="small" fullWidth>
+            <InputLabel>Priority *</InputLabel>
+            <Select name="priority" value={formData.priority} onChange={handleChange} label="Priority *" required>
+              <MenuItem value="admin">👑 Admin</MenuItem>
+              <MenuItem value="user">👤 User</MenuItem>
+              <MenuItem value="guest">👁 Guest</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField size="small" label="Password ใหม่ (เว้นว่างถ้าไม่ต้องการเปลี่ยน)" name="password" type="password"
+            value={formData.password} onChange={handleChange} fullWidth autoComplete="new-password" />
+
+          <Button type="submit" variant="contained" fullWidth
+            style={{ background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', padding:'12px', fontWeight:700, fontSize:'1rem', borderRadius:12, textTransform:'none', boxShadow:'0 4px 16px rgba(79,70,229,0.35)', marginTop:4 }}>
+            💾 บันทึกการเปลี่ยนแปลง
+          </Button>
+        </form>
+      </div>
+    </div>
   );
 }

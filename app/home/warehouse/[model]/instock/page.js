@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -15,7 +14,7 @@ import {
   Button
 } from '@mui/material';
 import * as XLSX from 'xlsx';
-import styles from './page.module.css'; // นำเข้าไฟล์ CSS ที่สร้างไว้
+import styles from './page.module.css';
 
 function getData(model) {
   return fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/mywarehouse/instock/${model}`)
@@ -32,27 +31,35 @@ export default function ProjectPage({ params }) {
   const decodedProject = decodeURIComponent(model);
   const [data, setData] = useState([]);
   const [priority, setPriority] = useState('');
+  // Fix A: auth state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Fix B: replace notFound() in Promise with state flag
+  const [notFoundState, setNotFoundState] = useState(false);
 
+  // Fix A: auth check in first useEffect
   useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
     const storedPriority = localStorage.getItem('priority');
-    if (storedPriority) {
-      setPriority(storedPriority);
-    }
+    if (storedPriority) setPriority(storedPriority);
   }, []);
 
   useEffect(() => {
+    if (!isLoggedIn) return;
     getData(model)
-      .then(data => {
-        if (data.length === 0) {
-          notFound();
+      .then(result => {
+        // Fix B: set notFoundState instead of calling notFound()
+        if (result.length === 0) {
+          setNotFoundState(true);
+          return;
         }
-        setData(data);
+        setData(result);
       })
       .catch(error => {
         console.error('Error fetching data:', error);
-        // Handle error as needed
       });
-  }, [model]);
+  }, [model, isLoggedIn]);
 
   const handleExportExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -79,8 +86,26 @@ export default function ProjectPage({ params }) {
     }
   };
 
+  // Fix A: guard render until auth is confirmed
+  if (!isLoggedIn) return null;
+
+  // Fix B: render not-found message instead of calling notFound()
+  if (notFoundState) {
+    return (
+      <Box sx={{ pt: '80px', px: 2, textAlign: 'center' }}>
+        <Typography variant="h5" color="text.secondary">ไม่พบข้อมูลสำหรับ model นี้</Typography>
+        <Box mt={2}>
+          <Link href="/home/warehouse">
+            <Button variant="contained">Back to Warehouse</Button>
+          </Link>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ width: '100%', padding: '100px' }} className={styles['fullscreen-container']}>
+    // Fix C: padding: '100px' -> pt: '80px', px: 2
+    <Box sx={{ width: '100%', pt: '80px', px: 2 }} className={styles['fullscreen-container']}>
       <Typography
         variant="h4"
         gutterBottom
@@ -93,19 +118,9 @@ export default function ProjectPage({ params }) {
           marginBottom: '20px',
         }}
       >
-        Model : {decodedProject}
+        In Stock : {decodedProject}
       </Typography>
       <Box className={styles['button-container']}>
-        {/* <Link href={`/home/${model}/createproject`} passHref>
-          <Button className={styles.customButton}>
-            add
-          </Button>
-        </Link>
-        <Link href={`/home/${model}/createprojectdynamic`} passHref>
-          <Button className={styles.customButton}>
-            Add Dynamic
-          </Button>
-        </Link> */}
         <Button className={styles.customButton} onClick={handleExportExcel}>
           export excel
         </Button>

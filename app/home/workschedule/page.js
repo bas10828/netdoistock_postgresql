@@ -1,512 +1,298 @@
 "use client"
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Box,
-  Button,
-  Drawer,
-  TextField,
-} from '@mui/material';
+import { Button, Drawer, TextField, Typography } from '@mui/material';
 import * as XLSX from 'xlsx';
 import moment from 'moment-timezone';
-import styles from './page.module.css';
 
-const formatDate = (isoDate) => {
-  return moment(isoDate).format('DD/MM/YYYY'); // แปลงเป็น วัน/เดือน/ปี
+const formatDate = (iso) => moment(iso, ['YYYY-MM-DD', moment.ISO_8601]).format('DD/MM/YYYY');
+
+const loadSchedule = (type) => {
+  const url = type === 'all'
+    ? `${process.env.NEXT_PUBLIC_API_URL}/api/schedule`
+    : `${process.env.NEXT_PUBLIC_API_URL}/api/schedule/today`;
+  return fetch(url)
+    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(data => data.map(item => ({
+      ...item,
+      timestamp: moment(item.timestamp).tz('Asia/Bangkok').format('DD/MM/YY HH:mm'),
+      date_start: formatDate(item.date_start),
+      date_end: formatDate(item.date_end),
+    })));
 };
 
-const fetchData = (type) => {
-  let url = `${process.env.NEXT_PUBLIC_API_URL}/api/schedule/today`;
-  if (type === 'all') {
-    url = `${process.env.NEXT_PUBLIC_API_URL}/api/schedule`;
-  }
-
-  return fetch(url, {
-    headers: {
-      'loggedIn': localStorage.getItem('isLoggedIn') === 'true' ? 'true' : 'false'
-    }
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      return response.json();
-    })
-    .then(data => {
-      // Convert timestamp to Thai timezone
-      return data.map(item => ({
-        ...item,
-        timestamp: moment(item.timestamp).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
-        date_start: formatDate(item.date_start),
-        date_end: formatDate(item.date_end),
-      }));
-    });
-};
+const emptyForm = { details: '', project: '', date_start: '', date_end: '', user: '' };
 
 const Page = () => {
   const [data, setData] = useState([]);
   const [priority, setPriority] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [displayType, setDisplayType] = useState('today');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [currentEditData, setCurrentEditData] = useState(null);
+  const [currentEditId, setCurrentEditId] = useState(null);
+  const [formData, setFormData] = useState(emptyForm);
   const [isFindDrawerOpen, setIsFindDrawerOpen] = useState(false);
   const [isFindDetailsDrawerOpen, setIsFindDetailsDrawerOpen] = useState(false);
   const [findDate, setFindDate] = useState('');
   const [findDetails, setFindDetails] = useState('');
-  const [formData, setFormData] = useState({
-    details: '',
-    project: '',
-    date_start: '',
-    date_end: '',
-    user: ''
-  });
-  const [displayType, setDisplayType] = useState('today'); // เริ่มต้นแสดงข้อมูลจาก today
 
   useEffect(() => {
     const loggedIn = localStorage.getItem('isLoggedIn');
-    if (!loggedIn) {
-      setIsLoggedIn(false);
-      window.location.href = "/";
-    } else {
-      setIsLoggedIn(true);
-    }
-    const storedPriority = localStorage.getItem('priority');
-    if (storedPriority) {
-      setPriority(storedPriority);
-    }
-
-    const username = localStorage.getItem('username');
-    if (username) {
-      setFormData(prevFormData => ({ ...prevFormData, user: username }));
-    }
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+    setPriority(localStorage.getItem('priority') || '');
   }, []);
 
   useEffect(() => {
-    fetchData(displayType)
-      .then(fetchedData => {
-        setData(fetchedData);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-        // Handle error state if needed
-      });
-  }, [displayType]);
-
-  const handleFindDrawerOpen = useCallback(() => {
-    setIsFindDrawerOpen(true);
-  }, []);
-
-  const handleFindDrawerClose = useCallback(() => {
-    setIsFindDrawerOpen(false);
-  }, []);
-
-  const handleFindDetailDrawerOpen = useCallback(() => {
-    setIsFindDetailsDrawerOpen(true);
-  }, []);
-
-  const handleFindDetailsDrawerClose = useCallback(() => {
-    setIsFindDetailsDrawerOpen(false);
-  }, []);
-
-  const handleFindDateChange = useCallback((event) => {
-    setFindDate(event.target.value);
-  }, [setFindDate]);
-
-  const handleFindSubmit = useCallback(async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/schedule/finddate/${findDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-
-      const fetchedData = await response.json();
-      setData(fetchedData.map(item => ({
-        ...item,
-        timestamp: moment(item.timestamp).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
-        date_start: formatDate(item.date_start),
-        date_end: formatDate(item.date_end),
-      })));
-      handleFindDrawerClose();
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  }, [findDate, handleFindDrawerClose]);
-
-  const handleFindDetailsSubmit = useCallback(async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/schedule/finddetail/${findDetails}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-
-      const fetchedData = await response.json();
-      setData(fetchedData.map(item => ({
-        ...item,
-        timestamp: moment(item.timestamp).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
-        date_start: formatDate(item.date_start),
-        date_end: formatDate(item.date_end),
-      })));
-      handleFindDetailsDrawerClose();
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  }, [findDetails, handleFindDetailsDrawerClose]);
-
-
-
-  const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(data.map(equipment => ({
-      ID: equipment.id,
-      timestamp: moment(equipment.timestamp).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
-      user: equipment.user,
-      project: equipment.project,
-      date_start: (equipment.date_start),
-      date_end: (equipment.date_end),
-      details: equipment.details,
-    })));
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Instock");
-
-    // Adjust column widths if needed
-    const maxWidths = [
-      { wch: 10 }, // ID
-      { wch: 20 }, // timestamp
-      { wch: 10 }, // user
-      { wch: 20 }, // project
-      { wch: 15 }, // date_start
-      { wch: 15 }, // date_end
-      { wch: 30 }, // details
-    ];
-
-    worksheet["!cols"] = maxWidths;
-
-    XLSX.writeFile(workbook, "Work_Schedule.xlsx");
-  };
-
+    if (!isLoggedIn) return;
+    loadSchedule(displayType).then(setData).catch(() => {});
+  }, [isLoggedIn, displayType]);
 
   const handleDelete = useCallback(async (id) => {
-    if (window.confirm('ต้องการลบรายการนี้?')) {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/schedule/delete/${id}`, {
-          method: 'DELETE',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to delete data');
-        }
-
-        setData(data.filter(item => item.id !== id));
-      } catch (error) {
-        console.error('Error deleting data:', error);
-      }
+    if (!window.confirm('ต้องการลบรายการนี้?')) return;
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/schedule/delete/${id}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error();
+      setData(d => d.filter(item => item.id !== id));
+    } catch {
+      alert('ลบไม่สำเร็จ กรุณาลองใหม่');
     }
-  }, [data]);
+  }, []);
 
-  const handleDrawerOpen = useCallback((editData = null) => {
+  const openDrawer = useCallback((editData = null) => {
     if (editData) {
       setEditMode(true);
-      setCurrentEditData(editData);
+      setCurrentEditId(editData.id);
       setFormData({
         details: editData.details,
         project: editData.project,
-        date_start: moment(editData.date_start, 'DD/MM/YYYY').isValid() ? moment(editData.date_start, 'DD/MM/YYYY').format('YYYY-MM-DD') : '', // ปรับให้เป็น ISO 8601
-        date_end: moment(editData.date_end, 'DD/MM/YYYY').isValid() ? moment(editData.date_end, 'DD/MM/YYYY').format('YYYY-MM-DD') : '', // ปรับให้เป็น ISO 8601
-        // date_start: moment(editData.date_start).format('YYYY-MM-DD'), // ปรับให้เป็น ISO 8601
-        // date_end: moment(editData.date_end).format('YYYY-MM-DD'), // ปรับให้เป็น ISO 8601
-        user: localStorage.getItem('username') || ''
+        date_start: moment(editData.date_start, 'DD/MM/YYYY').isValid()
+          ? moment(editData.date_start, 'DD/MM/YYYY').format('YYYY-MM-DD') : '',
+        date_end: moment(editData.date_end, 'DD/MM/YYYY').isValid()
+          ? moment(editData.date_end, 'DD/MM/YYYY').format('YYYY-MM-DD') : '',
+        user: localStorage.getItem('username') || '',
       });
     } else {
       setEditMode(false);
-      setFormData({
-        details: '',
-        project: '',
-        date_start: '',
-        date_end: '',
-        user: localStorage.getItem('username') || ''
-      });
+      setCurrentEditId(null);
+      setFormData({ ...emptyForm, user: localStorage.getItem('username') || '' });
     }
     setIsDrawerOpen(true);
   }, []);
 
-
-  const handleDrawerClose = useCallback(() => {
+  const closeDrawer = useCallback(() => {
     setIsDrawerOpen(false);
-    setCurrentEditData(null);
-    setFormData({
-      details: '',
-      project: '',
-      date_start: '',
-      date_end: '',
-      user: ''
-    });
+    setCurrentEditId(null);
+    setFormData(emptyForm);
   }, []);
-
-
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
-    if (name === 'date_start' || name === 'date_end') {
-      const formattedValue = moment(value).format('YYYY-MM-DD');
-      setFormData({ ...formData, [name]: formattedValue });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-  }, [formData]);
-
+    setFormData(prev => ({ ...prev, [name]: value }));
+  }, []);
 
   const handleSubmit = async () => {
     try {
-      const url = editMode ? `${process.env.NEXT_PUBLIC_API_URL}/api/schedule/update/${currentEditData.id}` : `${process.env.NEXT_PUBLIC_API_URL}/api/schedule/create`;
-      const method = editMode ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+      const url = editMode
+        ? `${process.env.NEXT_PUBLIC_API_URL}/api/schedule/update/${currentEditId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/api/schedule/create`;
+      const r = await fetch(url, {
+        method: editMode ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save data');
-      }
-
-      const updatedData = await response.json();
-      if (editMode) {
-        setData(data.map(item => (item.id === currentEditData.id ? updatedData : item)));
-      } else {
-        setData([...data, updatedData]);
-      }
-
-      handleDrawerClose();
-    } catch (error) {
-      console.error('Error saving data:', error);
+      if (!r.ok) throw new Error();
+      const updated = await r.json();
+      if (editMode) setData(d => d.map(item => item.id === currentEditId ? updated : item));
+      else setData(d => [...d, updated]);
+      closeDrawer();
+    } catch {
+      alert('บันทึกไม่สำเร็จ กรุณาลองใหม่');
     }
   };
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('isLoggedIn');
-    window.location.href = "/";
-  }, []);
-
-  if (!isLoggedIn) {
-    return null; // or any other non-form content like a login prompt
-  }
-
-  const handleDisplayChange = async (event) => {
-    const type = event.target.value;
-    setDisplayType(type);
-
+  const handleFindDate = async () => {
     try {
-      const fetchedData = await fetchData(type);
-      setData(fetchedData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // Handle error state if needed
-    }
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/schedule/finddate/${findDate}`);
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      setData(d.map(item => ({
+        ...item,
+        timestamp: moment(item.timestamp).tz('Asia/Bangkok').format('DD/MM/YY HH:mm'),
+        date_start: formatDate(item.date_start),
+        date_end: formatDate(item.date_end),
+      })));
+      setIsFindDrawerOpen(false);
+    } catch { alert('ค้นหาไม่สำเร็จ'); }
   };
-  // console.log("dataform ", formData)
 
+  const handleFindDetails = async () => {
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/schedule/finddetail/${findDetails}`);
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      setData(d.map(item => ({
+        ...item,
+        timestamp: moment(item.timestamp).tz('Asia/Bangkok').format('DD/MM/YY HH:mm'),
+        date_start: formatDate(item.date_start),
+        date_end: formatDate(item.date_end),
+      })));
+      setIsFindDetailsDrawerOpen(false);
+    } catch { alert('ค้นหาไม่สำเร็จ'); }
+  };
+
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(data.map(e => ({
+      ID: e.id, Timestamp: e.timestamp, User: e.user,
+      Project: e.project, 'Date Start': e.date_start, 'Date End': e.date_end, Details: e.details,
+    })));
+    ws["!cols"] = [8,18,10,20,13,13,35].map(w => ({ width: w }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "WorkSchedule");
+    XLSX.writeFile(wb, "Work_Schedule.xlsx");
+  };
+
+  if (!isLoggedIn) return null;
+
+  const canEdit = priority === 'user' || priority === 'admin';
+  const canDelete = priority === 'admin';
+
+  const toggleBtnStyle = (active) => ({
+    textTransform: 'none', fontWeight: 600, fontSize: '0.82rem', borderRadius: 8,
+    padding: '6px 14px', whiteSpace: 'nowrap',
+    ...(active
+      ? { background: '#4f46e5', color: 'white', border: '1.5px solid #4f46e5' }
+      : { background: 'white', color: '#4f46e5', border: '1.5px solid #c7d2fe' }),
+  });
+
+  const drawerBody = { width: 320, padding: 24, display:'flex', flexDirection:'column', gap:14 };
+  const drawerTitle = { fontWeight:800, fontSize:'1.1rem', color:'#0f172a' };
+  const actionBtnStyle = { background:'linear-gradient(135deg,#4f46e5,#7c3aed)', color:'white', textTransform:'none', fontWeight:700, borderRadius:9 };
 
   return (
-    <Box sx={{ width: '100%', padding: '16px' }} className={styles['fullscreen-container']}>
-      <TableContainer component={Paper} className={styles['table-container']}>
-        <div className={styles['button-container']}>
-          <Button onClick={() => handleDisplayChange({ target: { value: 'today' } })}>Today</Button>
-          <Button onClick={() => handleDisplayChange({ target: { value: 'all' } })}>All</Button>
-          <Button onClick={handleFindDrawerOpen}>Find Month/Year</Button>
-          <Button onClick={handleFindDetailDrawerOpen}>Find Details</Button>
+    <div className="page-wrapper">
 
-          {priority === 'admin' || priority === 'user' ? (
-            // <div className={styles['button-container']}>
-            <>
-              <Button onClick={() => handleDrawerOpen()} >Add</Button>
-              <Button onClick={exportToExcel}>Export Excel</Button>
-            </>
-            // </div>
-          ) : null}
+      <div className="page-header">
+        <Typography className="page-title">📅 ตารางงาน (Work Schedule)</Typography>
+        <span className="record-count">{data.length} รายการ</span>
+      </div>
+
+      <div className="toolbar-bar">
+        <button style={toggleBtnStyle(displayType==='today')} onClick={() => setDisplayType('today')}>📌 วันนี้</button>
+        <button style={toggleBtnStyle(displayType==='all')} onClick={() => setDisplayType('all')}>📋 ทั้งหมด</button>
+        <button style={{ ...toggleBtnStyle(false), borderColor:'#e2e8f0', color:'#475569' }} onClick={() => setIsFindDrawerOpen(true)}>🗓 ค้นหาเดือน</button>
+        <button style={{ ...toggleBtnStyle(false), borderColor:'#e2e8f0', color:'#475569' }} onClick={() => setIsFindDetailsDrawerOpen(true)}>🔍 ค้นหา Details</button>
+        {canEdit && (
+          <>
+            <Button className="btn-export" style={{ background:'linear-gradient(135deg,#10b981,#059669)', marginLeft:'auto' }} onClick={() => openDrawer()}>
+              + เพิ่มรายการ
+            </Button>
+            <Button className="btn-export" onClick={exportToExcel}>⬇ Export Excel</Button>
+          </>
+        )}
+      </div>
+
+      <div className="table-card">
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Details</th>
+                <th>Project</th>
+                <th>วันเริ่ม</th>
+                <th>วันสิ้นสุด</th>
+                <th>User</th>
+                <th>Timestamp</th>
+                {canEdit && <th style={{ textAlign:'center' }}>แก้ไข</th>}
+                {canDelete && <th style={{ textAlign:'center' }}>ลบ</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(eq => (
+                <tr key={eq.id}>
+                  <td style={{ color:'#94a3b8', width:48, fontSize:'0.8rem' }}>{eq.id}</td>
+                  <td style={{ maxWidth:240, overflow:'hidden', textOverflow:'ellipsis' }}>{eq.details}</td>
+                  <td style={{ fontWeight:500, color:'#4f46e5' }}>{eq.project}</td>
+                  <td>{eq.date_start}</td>
+                  <td>{eq.date_end}</td>
+                  <td style={{ color:'#64748b' }}>{eq.user}</td>
+                  <td style={{ color:'#94a3b8', fontSize:'0.8rem' }}>{eq.timestamp}</td>
+                  {canEdit && (
+                    <td style={{ textAlign:'center' }}>
+                      <Button variant="outlined" className="btn-edit" onClick={() => openDrawer(eq)}>แก้ไข</Button>
+                    </td>
+                  )}
+                  {canDelete && (
+                    <td style={{ textAlign:'center' }}>
+                      <Button variant="outlined" color="error" className="btn-delete" onClick={() => handleDelete(eq.id)}>ลบ</Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={canDelete?9:canEdit?8:7} style={{ textAlign:'center', padding:40, color:'#94a3b8' }}>
+                    ไม่พบข้อมูล
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-        <Table className={styles.table}>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Details</TableCell>
-              <TableCell>Project</TableCell>
-              <TableCell>Date Start</TableCell>
-              <TableCell>Date End</TableCell>
-              <TableCell>User</TableCell>
-              <TableCell>Timestamp</TableCell>
-              {priority === 'user' || priority === 'admin' ? (
-                <>
-                  <TableCell>Edit</TableCell>
-                </>
-              ) : null}
-              {priority === 'admin' ? (
-                <>
-                  <TableCell>Delete</TableCell>
-                </>
-              ) : null}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.map(equipment => (
-              <TableRow key={equipment.id}>
-                <TableCell>{equipment.id}</TableCell>
-                <TableCell>{equipment.details}</TableCell>
-                <TableCell>{equipment.project}</TableCell>
-                <TableCell>{equipment.date_start}</TableCell>
-                <TableCell>{equipment.date_end}</TableCell>
-                <TableCell>{equipment.user}</TableCell>
-                <TableCell>{moment(equipment.timestamp).tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss')}</TableCell>
-                {priority === 'user' || priority === 'admin' ? (
-                  <>
-                    <TableCell>
-                      <Button variant="contained" color="primary" onClick={() => handleDrawerOpen(equipment)}>
-                        Edit
-                      </Button>
-                    </TableCell>
+      </div>
 
-                  </>
-                ) : null}
-                {priority === 'admin' ? (
-                  <>
-                    <TableCell>
-                      <Button variant="contained" color="secondary" onClick={() => handleDelete(equipment.id)}>
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </>
-                ) : null}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Drawer anchor="right" open={isDrawerOpen} onClose={handleDrawerClose}>
-        <Box sx={{ width: 300, padding: '16px' }}>
-
-          <TextField
-            label="Details"
-            name="details"
-            value={formData.details}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            required
-            multiline
-            rows={3}
-          />
-          <TextField
-            label="Project"
-            name="project"
-            value={formData.project}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-          />
-          <TextField
-            label="Start Date"
-            name="date_start"
-            type="date"
-            value={formData.date_start}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <TextField
-            label="End Date"
-            name="date_end"
-            type="date"
-            value={formData.date_end}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <TextField
-            label="User"
-            name="user"
-            value={formData.user}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-            <Button variant="contained" color="primary" onClick={handleSubmit}>
-              {editMode ? 'Update' : 'Submit'}
+      {/* Add/Edit Drawer */}
+      <Drawer anchor="right" open={isDrawerOpen} onClose={closeDrawer}>
+        <div style={drawerBody}>
+          <Typography style={drawerTitle}>{editMode ? '✏️ แก้ไขรายการ' : '➕ เพิ่มรายการ'}</Typography>
+          <TextField label="Details *" name="details" value={formData.details} onChange={handleInputChange}
+            fullWidth required multiline rows={3} size="small" />
+          <TextField label="Project" name="project" value={formData.project} onChange={handleInputChange}
+            fullWidth size="small" />
+          <TextField label="วันเริ่ม" name="date_start" type="date" value={formData.date_start}
+            onChange={handleInputChange} fullWidth size="small" InputLabelProps={{ shrink:true }} />
+          <TextField label="วันสิ้นสุด" name="date_end" type="date" value={formData.date_end}
+            onChange={handleInputChange} fullWidth size="small" InputLabelProps={{ shrink:true }} />
+          <TextField label="User" name="user" value={formData.user}
+            fullWidth size="small" InputProps={{ readOnly:true }} />
+          <div style={{ display:'flex', gap:8, marginTop:4 }}>
+            <Button variant="contained" onClick={handleSubmit} fullWidth style={actionBtnStyle}>
+              {editMode ? 'อัปเดต' : 'บันทึก'}
             </Button>
-            <Button variant="outlined" color="secondary" onClick={handleDrawerClose}>
-              Cancel
-            </Button>
-          </Box>
-        </Box>
+            <Button variant="outlined" onClick={closeDrawer} fullWidth style={{ textTransform:'none', borderRadius:9 }}>ยกเลิก</Button>
+          </div>
+        </div>
       </Drawer>
 
-      <Drawer anchor="right" open={isFindDrawerOpen} onClose={handleFindDrawerClose}>
-        <Box sx={{ width: 300, padding: '16px' }}>
-          <TextField
-            label="Select Date"
-            type="month"
-            value={findDate}
-            onChange={handleFindDateChange}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-            <Button variant="contained" color="primary" onClick={handleFindSubmit}>
-              Submit
-            </Button>
-            <Button variant="outlined" color="secondary" onClick={handleFindDrawerClose}>
-              Cancel
-            </Button>
-          </Box>
-        </Box>
+      {/* Find Month/Year Drawer */}
+      <Drawer anchor="right" open={isFindDrawerOpen} onClose={() => setIsFindDrawerOpen(false)}>
+        <div style={drawerBody}>
+          <Typography style={drawerTitle}>🗓 ค้นหาตามเดือน/ปี</Typography>
+          <TextField label="เดือน/ปี" type="month" value={findDate} onChange={e => setFindDate(e.target.value)}
+            fullWidth size="small" InputLabelProps={{ shrink:true }} />
+          <div style={{ display:'flex', gap:8, marginTop:4 }}>
+            <Button variant="contained" onClick={handleFindDate} fullWidth style={actionBtnStyle}>ค้นหา</Button>
+            <Button variant="outlined" onClick={() => setIsFindDrawerOpen(false)} fullWidth style={{ textTransform:'none', borderRadius:9 }}>ยกเลิก</Button>
+          </div>
+        </div>
       </Drawer>
 
-      {/* Drawer for finding details */}
-      <Drawer anchor="right" open={isFindDetailsDrawerOpen} onClose={handleFindDetailsDrawerClose}>
-        <Box sx={{ width: 300, padding: '16px' }}>
-          <TextField
-            label="Find Details"
-            value={findDetails}
-            onChange={(e) => setFindDetails(e.target.value)}
-            fullWidth
-            margin="normal"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-            <Button variant="contained" color="primary" onClick={handleFindDetailsSubmit}>
-              Submit
-            </Button>
-            <Button variant="outlined" color="secondary" onClick={handleFindDetailsDrawerClose}>
-              Cancel
-            </Button>
-          </Box>
-        </Box>
+      {/* Find Details Drawer */}
+      <Drawer anchor="right" open={isFindDetailsDrawerOpen} onClose={() => setIsFindDetailsDrawerOpen(false)}>
+        <div style={drawerBody}>
+          <Typography style={drawerTitle}>🔍 ค้นหา Details</Typography>
+          <TextField label="คำค้นหา" value={findDetails} onChange={e => setFindDetails(e.target.value)}
+            fullWidth size="small" InputLabelProps={{ shrink:true }}
+            onKeyDown={e => e.key==='Enter' && handleFindDetails()} />
+          <div style={{ display:'flex', gap:8, marginTop:4 }}>
+            <Button variant="contained" onClick={handleFindDetails} fullWidth style={actionBtnStyle}>ค้นหา</Button>
+            <Button variant="outlined" onClick={() => setIsFindDetailsDrawerOpen(false)} fullWidth style={{ textTransform:'none', borderRadius:9 }}>ยกเลิก</Button>
+          </div>
+        </div>
       </Drawer>
 
-    </Box>
+    </div>
   );
 };
 

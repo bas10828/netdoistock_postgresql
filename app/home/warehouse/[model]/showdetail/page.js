@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import {
   Typography,
   Box,
@@ -11,14 +10,17 @@ import {
   CardActions
 } from '@mui/material';
 import Image from 'next/image';
-import styles from './page.module.css'; // นำเข้าไฟล์ CSS ที่สร้างไว้
+import styles from './page.module.css';
 
 export default function ShowdetailPage({ params }) {
   const { model } = params;
   const decodedProject = decodeURIComponent(model);
   const [data, setData] = useState([]);
   const [priority, setPriority] = useState('');
+  // Fix B: auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Fix C: replace notFound() in Promise with state flag
+  const [notFoundState, setNotFoundState] = useState(false);
 
   function getData(model) {
     return fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/mywarehouse/library/${model}`, {
@@ -34,29 +36,51 @@ export default function ShowdetailPage({ params }) {
       });
   }
 
+  // Fix B: auth check in first useEffect
   useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
     const storedPriority = localStorage.getItem('priority');
-    if (storedPriority) {
-      setPriority(storedPriority);
-    }
+    if (storedPriority) setPriority(storedPriority);
   }, []);
 
   useEffect(() => {
+    if (!isLoggedIn) return;
     getData(model)
-      .then(data => {
-        console.log(data); // ตรวจสอบข้อมูลที่ได้รับ
-        if (!Array.isArray(data)) {
-          data = [data]; // ถ้าเป็น object ให้แปลงเป็น array
+      .then(result => {
+        console.log(result);
+        if (!Array.isArray(result)) {
+          result = [result];
         }
-        if (data.length === 0) {
-          notFound();
+        // Fix C: set notFoundState instead of calling notFound()
+        if (result.length === 0) {
+          setNotFoundState(true);
+          return;
         }
-        setData(data);
+        setData(result);
       })
       .catch(error => {
         console.error('Error fetching data:', error);
       });
-  }, [model]);
+  }, [model, isLoggedIn]);
+
+  // Fix B: guard render until auth is confirmed
+  if (!isLoggedIn) return null;
+
+  // Fix C: render not-found message instead of calling notFound()
+  if (notFoundState) {
+    return (
+      <Box sx={{ pt: '80px', px: 2, textAlign: 'center' }}>
+        <Typography variant="h5" color="text.secondary">ไม่พบข้อมูลสำหรับ model นี้</Typography>
+        <Box mt={2}>
+          <Link href="/home/warehouse">
+            <Button variant="contained">Back to Warehouse</Button>
+          </Link>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box className={styles['fullscreen-container']}>
@@ -64,16 +88,11 @@ export default function ShowdetailPage({ params }) {
         data.map((equipment) => (
           <Card key={equipment.id} className={styles.card}>
             <Box className={styles.cardImageContainer}>
-              {/* <img
-                src={equipment.picture || '/default-image.png'}
-                alt={equipment.model}
-                className={styles.cardImage}
-              /> */}
               <Image
-                src={`/devicepic/${equipment.model}.png`} // เรียกรูปตามชื่อ model
+                src={`/devicepic/${equipment.model}.png`}
                 alt={equipment.model}
-                width={500} // กำหนดขนาดตามที่ต้องการ
-                height={300} // กำหนดขนาดตามที่ต้องการ
+                width={500}
+                height={300}
                 className={styles.cardImage}
               />
             </Box>
@@ -85,7 +104,8 @@ export default function ShowdetailPage({ params }) {
                 {equipment.device_type}
               </Typography>
               <Typography className={styles.cardText} variant="body2">
-                {equipment.detail.split('\n').map((line, index) => (
+                {/* Fix A: guard against null detail */}
+                {(equipment.detail || '').split('\n').map((line, index) => (
                   <span key={index}>
                     {line}
                     <br />

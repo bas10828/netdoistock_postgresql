@@ -3,8 +3,6 @@ import { NextResponse } from 'next/server';
 
 export async function DELETE(req, { params }) {
   try {
-    console.log('Params:', params); // Debugging line
-
     // ดึง ID จาก params
     const { id } = params;
 

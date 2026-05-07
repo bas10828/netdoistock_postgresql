@@ -1,29 +1,52 @@
 .fullscreen-container {
-  background: linear-gradient(to right, #f0f4f8, #d9e4ec);
+  width: 100%;
+  padding: 24px;
+}
+
+.search-input {
+  background: white;
+  border-radius: 10px;
 }
 
 .table-container {
-  margin-top: 16px;
-  border-radius: 12px;
+  border-radius: 14px !important;
   overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
-}
-
-.table th, .table td {
-  padding: 15px 20px;
-  text-align: left;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #e2e8f0;
 }
 
 .table th {
-  background-color: #4a90e2;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
   color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 20px;
 }
 
-.table tr:nth-of-type(even) {
-  background-color: #f7f9fc;
+.table td {
+  font-size: 0.9rem;
+  color: #374151;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.table tr:hover {
-  background-color: #e1ecf4;
+.table tr:nth-of-type(even) td {
+  background-color: #fafbff;
+}
+
+.tableRow:hover td {
+  background-color: #ede9fe;
+  cursor: pointer;
+}
+
+.tableRow a {
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.tableRow a:hover {
+  text-decoration: underline;
 }

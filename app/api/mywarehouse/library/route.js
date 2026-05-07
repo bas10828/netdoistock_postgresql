@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { pgPool } from "@/utils/db";
 
 // GET - Fetch all records
-export async function GET(request) {
-  const loggedIn = request.headers.get('loggedIn');
-  if (!loggedIn || loggedIn !== 'true') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export async function GET() {
   try {
     const { rows } = await pgPool.query('SELECT * FROM library');
     return NextResponse.json(rows);
@@ -19,11 +14,6 @@ export async function GET(request) {
 
 // POST - Create a new record
 export async function POST(request) {
-  const loggedIn = request.headers.get('loggedIn');
-  if (!loggedIn || loggedIn !== 'true') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const { model, device_type, detail } = await request.json();
   if (!model || !device_type || !detail) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -41,11 +31,6 @@ export async function POST(request) {
 
 // PUT - Update a record
 export async function PUT(request) {
-  const loggedIn = request.headers.get('loggedIn');
-  if (!loggedIn || loggedIn !== 'true') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const { id, model, device_type, detail } = await request.json();
   if (!id || !model || !device_type || !detail) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -66,11 +51,6 @@ export async function PUT(request) {
 
 // DELETE - Delete a record
 export async function DELETE(request) {
-  const loggedIn = request.headers.get('loggedIn');
-  if (!loggedIn || loggedIn !== 'true') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const { id } = await request.json();
   if (!id) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

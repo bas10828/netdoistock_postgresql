@@ -2,6 +2,14 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 
+if (!process.env.POSTGRES_URI) {
+  throw new Error('Missing environment variable: POSTGRES_URI');
+}
+
+if (!process.env.JWT_SECRET) {
+  throw new Error('Missing environment variable: JWT_SECRET');
+}
+
 export const pgPool = new Pool({
   connectionString: process.env.POSTGRES_URI,
 });

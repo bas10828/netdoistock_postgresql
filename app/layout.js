@@ -1,7 +1,6 @@
 // app/layout.js
-import Head from 'next/head';
 import { Analytics } from '@vercel/analytics/react';
-// import './globals.css';
+import './globals.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 export const metadata = {

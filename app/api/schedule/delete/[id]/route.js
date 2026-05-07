@@ -3,8 +3,6 @@ import { pgPool } from "@/utils/db";
 
 export async function DELETE(req, { params }) {
   try {
-    console.log('Params:', params); // Debugging line
-
     const { id } = params;
 
     if (!id) {

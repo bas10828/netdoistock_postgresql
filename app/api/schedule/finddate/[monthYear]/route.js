@@ -4,7 +4,6 @@ import moment from "moment-timezone";
 
 export async function GET(req, { params }) {
   const { monthYear } = params;
-  console.log("monthYear:", monthYear);
 
   // Validate monthYear format (YYYY-MM)
   if (!moment(monthYear, 'YYYY-MM', true).isValid()) {

@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { pgPool } from "@/utils/db";
 
-export async function GET(request) {
-  const loggedIn = request.headers.get('loggedIn');
-
-  if (!loggedIn || loggedIn !== 'true') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export async function GET() {
   try {
     const query = `SELECT * FROM users;`;
     const { rows } = await pgPool.query(query);

@@ -1,137 +1,104 @@
-// C:\Users\kanta\Desktop\Dev\NEXT.js\my-appv2\app\home\manageusers\page.js
 "use client"
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  Box,
-  Button
-} from '@mui/material';
-import styles from './page.module.css';
+import { Button, Typography } from '@mui/material';
 
-const fetchData = () => {
-  return fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
-    headers: {
-      'loggedIn': localStorage.getItem('isLoggedIn') === 'true' ? 'true' : 'false'
-    }
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      return response.json();
-    });
-};
-
-const deleteUserData = async (id) => {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/delete/${id}`, {
-      method: 'DELETE'
-    });
-
-    if (response.ok) {
-      console.log(`User with ID ${id} deleted successfully`);
-      // Optionally, you can fetch updated data or update state after deletion
-    } else {
-      console.error('Failed to delete user');
-      // Handle failure to delete user
-    }
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    // Handle error deleting user
-  }
+const priorityConfig = {
+  admin: { bg: '#fef9c3', color: '#92400e', label: '👑 Admin' },
+  user:  { bg: '#dbeafe', color: '#1d4ed8', label: '👤 User'  },
 };
 
 const Page = () => {
   const [data, setData] = useState([]);
-  const [refresh, setRefresh] = useState(false); // State สำหรับ refresh หน้าเว็บ
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const loggedIn = localStorage.getItem('isLoggedIn');
-    if (!loggedIn) {
-      setIsLoggedIn(false);
-      window.location.href = "/";
-    }else {
-      setIsLoggedIn(true);      
-    }
-    fetchData()
-      .then(fetchedData => {
-        setData(fetchedData);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-        // Handle error state if needed
-      });
-  }, [refresh]); // เพิ่ม refresh เป็น dependency ใน useEffect
-
-  const refreshPage = () => {
-    setRefresh(prevRefresh => !prevRefresh); // สลับค่า refresh ระบบจะทำการ refresh หน้าเว็บ
-  };
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData)
+      .catch(() => {});
+  }, []);
 
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm('Are you sure you want to delete this user?');
-    if (confirmDelete) {
-      await deleteUserData(id);
-      refreshPage(); // รีเฟรชหน้าเว็บหลังจากการลบสำเร็จ
+    if (!window.confirm('ต้องการลบผู้ใช้นี้?')) return;
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/delete/${id}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error();
+      setData(d => d.filter(u => u.id !== id));
+    } catch {
+      alert('ลบไม่สำเร็จ กรุณาลองใหม่');
     }
   };
-  
-  if (!isLoggedIn) {
-    return null; // or any other non-form content like a login prompt
-  }
+
+  if (!isLoggedIn) return null;
 
   return (
-    <Box sx={{ width: '100%', padding: '16px' }} className={styles['fullscreen-container']}>
-      <Link href={`/home/manageusers/register`} passHref>
-        <Button variant="contained" color="primary" sx={{ mb: 2 }}>
-          Add User
-        </Button>
-      </Link>
-      <TableContainer component={Paper} className={styles['table-container']}>
-        <Table className={styles.table}>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Username</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Priority</TableCell>
-              <TableCell>Edit</TableCell>
-              <TableCell>Delete</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.map(users => (
-              <TableRow key={users.id}>
-                <TableCell>{users.id}</TableCell>
-                <TableCell>{users.username}</TableCell>
-                <TableCell>{users.email}</TableCell>
-                <TableCell>{users.priority}</TableCell>
-                <TableCell>
-                  <Link href={`/home/manageusers/updateuser/${users.id}`} passHref>
-                    <Button variant="contained" color="warning">
-                      Edit
-                    </Button>
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Button variant="contained" color="secondary" onClick={() => handleDelete(users.id)}>
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+    <div className="page-wrapper">
+
+      <div className="page-header">
+        <Typography className="page-title">👥 จัดการผู้ใช้ (Users)</Typography>
+        <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+          <span className="record-count">{data.length} ผู้ใช้</span>
+          <Link href="/home/manageusers/register">
+            <Button variant="contained"
+              style={{ background:'linear-gradient(135deg,#10b981,#059669)', color:'white', fontWeight:700, borderRadius:9, textTransform:'none', padding:'8px 18px', boxShadow:'0 3px 10px rgba(16,185,129,0.3)' }}>
+              + เพิ่มผู้ใช้
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="table-card">
+        <div className="table-scroll">
+          <table className="data-table" style={{ minWidth: 520 }}>
+            <thead>
+              <tr>
+                <th style={{ width:56 }}>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th style={{ textAlign:'center' }}>Priority</th>
+                <th style={{ textAlign:'center' }}>แก้ไข</th>
+                <th style={{ textAlign:'center' }}>ลบ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(user => {
+                const cfg = priorityConfig[user.priority] || { bg:'#f1f5f9', color:'#475569', label: user.priority };
+                return (
+                  <tr key={user.id}>
+                    <td style={{ color:'#94a3b8', fontWeight:600, fontSize:'0.82rem' }}>{user.id}</td>
+                    <td style={{ fontWeight:600 }}>{user.username}</td>
+                    <td style={{ color:'#64748b' }}>{user.email}</td>
+                    <td style={{ textAlign:'center' }}>
+                      <span style={{ background:cfg.bg, color:cfg.color, borderRadius:999, padding:'4px 12px', fontWeight:700, fontSize:'0.78rem', display:'inline-block' }}>
+                        {cfg.label}
+                      </span>
+                    </td>
+                    <td style={{ textAlign:'center' }}>
+                      <Link href={`/home/manageusers/updateuser/${user.id}`}>
+                        <Button variant="outlined" className="btn-edit">แก้ไข</Button>
+                      </Link>
+                    </td>
+                    <td style={{ textAlign:'center' }}>
+                      <Button variant="outlined" color="error" className="btn-delete" onClick={() => handleDelete(user.id)}>ลบ</Button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign:'center', padding:40, color:'#94a3b8' }}>ไม่พบข้อมูล</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
   );
 };
 
