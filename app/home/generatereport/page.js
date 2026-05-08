@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import readXlsxFile from "read-excel-file";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -20,9 +20,16 @@ import {
 } from "@mui/material";
 
 const Generatereport = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [projectData, setProjectData] = useState([]);
   const [inventoryData, setInventoryData] = useState([]);
   const [report, setReport] = useState("");
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+  }, []);
 
   const handleFileUpload = (event, fileType) => {
     const file = event.target.files[0];
@@ -221,8 +228,8 @@ const Generatereport = () => {
             buildingIndex - 1
           }.${subItemIndex} ติดตั้ง${detail} ${quantityText}\n`;
         } else if (
-          () => {
-            const d = detail.toLowerCase(); // แปลงเป็นพิมพ์เล็กก่อนเช็ค
+          (() => {
+            const d = detail.toLowerCase();
             return (
               d.includes("รวมค่าใช้จ่ายทั้งโครงการ") ||
               d.includes("ภาษีมูลค่าเพิ่ม") ||
@@ -236,7 +243,7 @@ const Generatereport = () => {
               d.includes("odf wall outdoor") ||
               d.includes("ground")
             );
-          }
+          })()
         ) {
           // ข้ามรายละเอียดที่ไม่เกี่ยวข้องกับอุปกรณ์
           return;
@@ -346,10 +353,12 @@ const Generatereport = () => {
     }
   };
 
+  if (!isLoggedIn) return null;
+
   return (
     <Container
       maxWidth="100%"
-      sx={{ py: 4, bgcolor: "grey.50", minHeight: "100vh", padding: "100px" }}
+      sx={{ py: 4, bgcolor: "grey.50", minHeight: "100vh", pt: "80px", px: 3 }}
     >
       <Typography
         variant="h4"

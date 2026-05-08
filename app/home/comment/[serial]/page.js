@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -21,43 +20,34 @@ import styles from './page.module.css'; // Import your CSS file
 function ProjectPage({ params }) {
   const { serial } = params;
   const decodedProject = decodeURIComponent(serial);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [notFoundState, setNotFoundState] = useState(false);
   const [data, setData] = useState([]);
   const [priority, setPriority] = useState('');
   const [newComment, setNewComment] = useState('');
   const [updateComment, setUpdateComment] = useState('');
   const [storedUsername, setStoredUsername] = useState('');
-  const [editingId, setEditingId] = useState(null); // State to track which comment is being edited
-  const [slideOpenUpdate, setSlideOpenUpdate] = useState(false); // State to control Slide bar for Update Comment
+  const [editingId, setEditingId] = useState(null);
+  const [slideOpenUpdate, setSlideOpenUpdate] = useState(false);
 
-  // Fetch priority and username from localStorage on initial render
   useEffect(() => {
-    const storedPriority = localStorage.getItem('priority');
-    if (storedPriority) setPriority(storedPriority);
-
-    const username = localStorage.getItem('username');
-    if (username) setStoredUsername(username);
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+    setPriority(localStorage.getItem('priority') || '');
+    setStoredUsername(localStorage.getItem('username') || '');
   }, []);
 
-  // Fetch data based on serial
   useEffect(() => {
-    getData(serial);
-  }, [serial]);
-
-  const getData = (serial) => {
+    if (!isLoggedIn) return;
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comment/${serial}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch data');
-        console.log(res)
-        return res.json();
-      })
+      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then(data => {
-        if (data.length === 0) notFound();
+        if (data.length === 0) setNotFoundState(true);
         else setData(data);
       })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-      });
-  };
+      .catch(() => {});
+  }, [isLoggedIn, serial]);
 
   const handleDelete = async (id) => {
     if (window.confirm('ต้องการลบรายการนี้?')) {
@@ -135,8 +125,11 @@ function ProjectPage({ params }) {
     return thaiTime;
   };
 
+  if (!isLoggedIn) return null;
+  if (notFoundState) return <Box sx={{ pt: '80px', px: 3, textAlign: 'center' }}>ไม่พบข้อมูล Serial นี้</Box>;
+
   return (
-    <Box sx={{ width: '100%', padding: '100px' }} className={styles['fullscreen-container']}>
+    <Box sx={{ width: '100%', pt: '80px', px: 3 }} className={styles['fullscreen-container']}>
       <Typography
         variant="h4"
         gutterBottom

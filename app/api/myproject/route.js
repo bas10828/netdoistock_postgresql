@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { query } from "@/utils/db"; // ใช้ PostgreSQL query wrapper
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const queryText = `
     SELECT project, COUNT(project) AS countproject 

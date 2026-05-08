@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { pgPool } from "@/utils/db";
 import moment from "moment-timezone";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const today = moment().startOf('day').format('YYYY-MM-DD');

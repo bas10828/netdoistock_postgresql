@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TextField, Button, Grid, Select, MenuItem, FormControl, InputLabel,
@@ -13,12 +13,20 @@ import styles from "./page.module.css";
 const getToday = () => new Date().toISOString().split("T")[0];
 
 export default function ImportInventoryPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [rows, setRows] = useState([]);
   const [schoolName, setSchoolName] = useState("");
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  const [username] = useState(() => typeof window !== "undefined" ? localStorage.getItem("username") || "system" : "system");
+  const [username, setUsername] = useState("system");
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+    setUsername(localStorage.getItem('username') || 'system');
+  }, []);
 
   const [globalFields, setGlobalFields] = useState(() => ({
     proid: "",
@@ -182,6 +190,8 @@ export default function ImportInventoryPage() {
     "ProID", "Status Stock", "Into Stock", "Out Stock", "Price", "Purchase", "Project",
     "Actions",
   ];
+
+  if (!isLoggedIn) return null;
 
   return (
     <Box sx={{ pt: "80px", px: 3, pb: 4 }}>

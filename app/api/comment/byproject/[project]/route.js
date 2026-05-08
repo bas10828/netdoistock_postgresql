@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { pgPool } from '@/utils/db';
 
 // Returns the latest comment per serial for all equipment in a project
+export const dynamic = 'force-dynamic';
+
 export async function GET(request, { params }) {
   const project = decodeURIComponent(params.project);
   try {

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Table,
@@ -27,6 +27,7 @@ import { Menu as MenuIcon, Close as CloseIcon } from "@mui/icons-material";
 import styles from './page.module.css';
 
 const CreateByExcel = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [data, setData] = useState([]);
   const [error, setError] = useState("");
   const [formValues, setFormValues] = useState({
@@ -48,6 +49,12 @@ const CreateByExcel = () => {
     brand: "",
     model: "",
   });
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+  }, []);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -198,6 +205,8 @@ const CreateByExcel = () => {
     const newData = editableData.filter((_, i) => i !== index);
     setEditableData(newData);
   };
+
+  if (!isLoggedIn) return null;
 
   return (
     <>

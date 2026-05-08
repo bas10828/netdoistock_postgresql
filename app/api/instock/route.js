@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { pgPool } from "@/utils/db";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const query = "SELECT * FROM equipment WHERE status_stock = 'in stock'";

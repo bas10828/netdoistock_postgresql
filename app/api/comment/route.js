@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { query } from "@/utils/db"; // ใช้ query จาก db.js ของ PostgreSQL
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request, { params }) {
   // const { serial } = params;

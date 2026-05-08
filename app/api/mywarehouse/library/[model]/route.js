@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { pgPool } from "@/utils/db";
 
 // GET - Fetch record by model
+export const dynamic = 'force-dynamic';
+
 export async function GET(request, { params }) {
   const { model } = params;
 

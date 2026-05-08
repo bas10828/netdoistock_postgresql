@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   TextField,
   Button,
@@ -27,6 +27,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import styles from "./page.module.css";
 
 export default function CreateSerial() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [serial, setSerial] = useState("");
   const [serialList, setSerialList] = useState([]);
 
@@ -43,6 +44,12 @@ export default function CreateSerial() {
   const [project, setProject] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarData, setSidebarData] = useState({ proid: "" });
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem('isLoggedIn');
+    if (!loggedIn) { window.location.href = "/"; return; }
+    setIsLoggedIn(true);
+  }, []);
 
   const toggleDrawer = (open) => () => {
     setDrawerOpen(open);
@@ -134,6 +141,8 @@ export default function CreateSerial() {
   };
 
 
+
+  if (!isLoggedIn) return null;
 
   return (
     <div className={styles.headerContainer}>

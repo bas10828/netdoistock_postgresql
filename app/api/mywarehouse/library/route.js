@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { pgPool } from "@/utils/db";
 
 // GET - Fetch all records
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const { rows } = await pgPool.query('SELECT * FROM library');

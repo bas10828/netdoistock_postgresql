@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { pgPool } from "@/utils/db";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request, { params }) {
   const { model } = params;
